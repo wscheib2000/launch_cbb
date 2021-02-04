@@ -15,7 +15,7 @@ library(dplyr)
 
 ## Read in data
 ```{r read_data}
-data <- read.csv('cbb_15-19.csv')
+data <- read.csv("cbb_15-19.csv")
 ```
 
 ### Part 1: Biggest Snubs/Worst At-Large Teams
@@ -24,29 +24,84 @@ data <- read.csv('cbb_15-19.csv')
 part1 <- data %>% select(TEAM, CONF, ADJOE, ADJDE, WAB, POSTSEASON, YEAR) %>% data.frame()
 ```
 
-## Create columns of offensive and defensive efficiency percentiles
+## Create columns of offensive and defensive efficiency percentiles, make defensive efficiency negative
 ```{r percentile_calc}
 percentile_OE <- ecdf(part1$ADJOE)
-part1$ADJOE_pct <- vapply(part1$ADJOE, percentile_OE, numeric(1))
+part1$ADJOE_PCT <- vapply(part1$ADJOE, percentile_OE, numeric(1))
 
 percentile_DE <- ecdf(part1$ADJDE)
-part1$ADJDE_pct <- vapply(part1$ADJDE, percentile_DE, numeric(1))
+part1$ADJDE_PCT <- 1 - vapply(part1$ADJDE, percentile_DE, numeric(1)) #had to flip percentiles because lower is better
+
+part1$ADJDE_REV <- part1$ADJDE * -1
 ```
 
 ## Create columns of tournament wins (numeric) and tournament team (factor of Booleans)
 ```{r percentile_calc}
 wins_to_numeric <- function(postseason){
-  if (is.na(postseason) | postseason == 'R68') {return(-1)} #did not make tournament
-  else if (postseason == 'R64') {return(0)}
-  else if (postseason == 'R32') {return(1)}
-  else if (postseason == 'S16') {return(2)}
-  else if (postseason == 'E8') {return(3)}
-  else if (postseason == 'F4') {return(4)}
-  else if (postseason == '2ND') {return(5)}
-  else if (postseason == 'Champions') {return(6)}
+  if (is.na(postseason) | postseason == "R68") {return(-1)} #did not make tournament
+  else if (postseason == "R64") {return(0)}
+  else if (postseason == "R32") {return(1)}
+  else if (postseason == "S16") {return(2)}
+  else if (postseason == "E8") {return(3)}
+  else if (postseason == "F4") {return(4)}
+  else if (postseason == "2ND") {return(5)}
+  else if (postseason == "Champions") {return(6)}
   else {return(-2)}
 }
 part1$TOURNAMENT_WINS <- vapply(part1$POSTSEASON, wins_to_numeric, numeric(1))
 
 part1$TOURNAMENT_TEAM <- factor(part1$TOURNAMENT_WINS != -1, levels = c(TRUE, FALSE))
+```
+
+## Exploratory plots
+```{r explor_plts}
+adjoe_hist <- ggplot(part1, aes(x=ADJOE)) +
+  geom_histogram(binwidth=2, colour="red", fill="indianred2", alpha = 0.5) +
+  stat_function(fun = function(x) dnorm(x, mean = mean(part1$ADJOE),
+                                        sd = sd(part1$ADJOE)) * 
+                                  nrow(part1) * 2,
+                color = "red", size = 0.8) +
+  coord_cartesian(xlim = c(70, 135), ylim = c(0, 250))
+  # labs(title = "College Basketball Teams\nfrom 2015-2019",
+  #      x = "Adjusted Offensive Efficiency Percentile",
+  #      y = "Adjusted Defensive Efficiency Percentile",
+  #      color = "Tournament Team") +
+  # theme(title = element_text(size = 18))
+adjoe_hist
+
+adjde_hist <- ggplot(part1, aes(x=ADJDE)) +
+  geom_histogram(binwidth=2, colour="blue", fill="blue", alpha = 0.3) +
+  stat_function(fun = function(x) dnorm(x, mean = mean(part1$ADJDE),
+                                        sd = sd(part1$ADJDE)) * 
+                                  nrow(part1) * 2,
+                color = "blue", size = 0.8) +
+  coord_cartesian(xlim = c(70, 135), ylim = c(0, 250))
+  # labs(title = "College Basketball Teams\nfrom 2015-2019",
+  #      x = "Adjusted Offensive Efficiency Percentile",
+  #      y = "Adjusted Defensive Efficiency Percentile",
+  #      color = "Tournament Team") +
+  # theme(title = element_text(size = 18))
+adjde_hist
+
+# big_plot <- ggplot(part1, 
+#                    aes(x=ADJOE_PCT, y=ADJDE_PCT, color=TOURNAMENT_TEAM)) +
+#   geom_point(aes(color=TOURNAMENT_TEAM)) + 
+#   scale_color_manual(breaks = c(TRUE, FALSE), values=c("#03c2fc", "#fc5e03")) +
+#   labs(title = "College Basketball Teams\nfrom 2015-2019",
+#        x = "Adjusted Offensive Efficiency Percentile",
+#        y = "Adjusted Defensive Efficiency Percentile",
+#        color = "Tournament Team") +
+#   theme(title = element_text(size = 18))
+# big_plot
+# 
+# big_plot2 <- ggplot(part1, 
+#                    aes(x=ADJOE, y=ADJDE_REV, color=TOURNAMENT_TEAM)) +
+#   geom_point(aes(color=TOURNAMENT_TEAM)) + 
+#   scale_color_manual(breaks = c(TRUE, FALSE), values=c("#03c2fc", "#fc5e03")) +
+#   labs(title = "College Basketball Teams\nfrom 2015-2019",
+#        x = "Adjusted Offensive Efficiency",
+#        y = "Adjusted Defensive Efficiency (points allowed per game)",
+#        color = "Tournament Team") +
+#   theme(title = element_text(size = 18))
+# big_plot2
 ```
