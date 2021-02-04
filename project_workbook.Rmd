@@ -7,7 +7,46 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Load in data
-```{r load_data}
+## Load packages
+```{r load_pkgs}
+library(ggplot2)
+library(dplyr)
+```
+
+## Read in data
+```{r read_data}
 data <- read.csv('cbb_15-19.csv')
+```
+
+### Part 1: Biggest Snubs/Worst At-Large Teams
+## Select necessary columns
+```{r part1_cols}
+part1 <- data %>% select(TEAM, CONF, ADJOE, ADJDE, WAB, POSTSEASON, YEAR) %>% data.frame()
+```
+
+## Create columns of offensive and defensive efficiency percentiles
+```{r percentile_calc}
+percentile_OE <- ecdf(part1$ADJOE)
+part1$ADJOE_pct <- vapply(part1$ADJOE, percentile_OE, numeric(1))
+
+percentile_DE <- ecdf(part1$ADJDE)
+part1$ADJDE_pct <- vapply(part1$ADJDE, percentile_DE, numeric(1))
+```
+
+## Create columns of tournament wins (numeric) and tournament team (factor of Booleans)
+```{r percentile_calc}
+wins_to_numeric <- function(postseason){
+  if (is.na(postseason) | postseason == 'R68') {return(-1)} #did not make tournament
+  else if (postseason == 'R64') {return(0)}
+  else if (postseason == 'R32') {return(1)}
+  else if (postseason == 'S16') {return(2)}
+  else if (postseason == 'E8') {return(3)}
+  else if (postseason == 'F4') {return(4)}
+  else if (postseason == '2ND') {return(5)}
+  else if (postseason == 'Champions') {return(6)}
+  else {return(-2)}
+}
+part1$TOURNAMENT_WINS <- vapply(part1$POSTSEASON, wins_to_numeric, numeric(1))
+
+part1$TOURNAMENT_TEAM <- factor(part1$TOURNAMENT_WINS != -1, levels = c(TRUE, FALSE))
 ```
