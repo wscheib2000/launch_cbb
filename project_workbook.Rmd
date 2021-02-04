@@ -1,0 +1,13 @@
+---
+title: "Launch Project Workbook"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load in data
+```{r load_data}
+data <- read.csv('cbb_15-19.csv')
+```
